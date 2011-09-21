@@ -1019,6 +1019,7 @@ class Parser {
 			$df = DateFormatter::getInstance();
 			$text = $df->reformat( $this->mOptions->getDateFormat(), $text );
 		}
+		$text = $this->replaceSemanticLinks( $text );
 		$text = $this->replaceInternalLinks( $text );
 		$text = $this->doAllQuotes( $text );
 		$text = $this->replaceExternalLinks( $text );
@@ -1351,6 +1352,65 @@ class Parser {
 			return $output;
 		}
 	}
+
+	/**
+	 * Process [[[ ]]] semantic wikilinks
+	 * @return processed text
+	 */
+	function replaceSemanticLinks(&$s) {
+		$original = $s;
+		$titleChars = Title::legalChars() . '#%';
+		$regExp = "/^([{$titleChars}]+)(?:\\|(.+?))?]]](.*)\$/sD";
+
+	 	# split the entire text string on occurences of [[
+		$a = StringUtils::explode( '[[', ' ' . $s );
+		# get the first element (all text up to first [[), and remove the space we added
+		$s = $a->current();
+		$a->next();
+		$line = $a->current(); # Workaround for broken ArrayIterator::next() that returns "void"
+		$s = substr( $s, 1 );
+
+		// TODO: this needs to be a global registry of allowed link types
+		$types = array(
+		   'rdf:type' => 'rel', 
+		   'rdfs:comment' => 'property'
+		);
+		
+		$holders = new LinkHolderArray($this);
+		$sk = $this->mOptions->getSkin($this->mTitle);
+
+		while ($a->valid()) {
+			$parts = explode('::', $a->current());
+
+			if (count($parts) == 2) {
+				// We have a semantic link (contains '::')
+				$title;
+				$trailing;
+				foreach ($parts as $index => $part) {
+					if ($index === count($parts)-1) {
+						$parts2 = explode(']]', $part);
+						$title = $parts2[0];
+						$trailing = $parts2[1];
+					}
+				}
+
+				$rdfaAttribs = array();
+				$rdfaAttribs[$types[$parts[0]]] = $parts[0];
+
+				$nt = Title::newFromText($this->mStripState->unstripNoWiki($title));
+				$s .= $sk->link($nt, null, $rdfaAttribs);
+				$s .= $trailing;
+			} else {
+				// Non-semantic link pipe it through as is
+				$s .= '[[' . $a->current();
+			}
+			
+			$a->next();
+		}
+
+		return $s;
+	}
+
 
 	/**
 	 * Replace external links (REL)

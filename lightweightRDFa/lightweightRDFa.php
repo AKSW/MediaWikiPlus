@@ -31,8 +31,8 @@ $wgHooks['OutputPageBodyAttributes'][] = 'rdfaAbout';
 
 function rdfaAbout( $out, $sk, &$bodyAttrs ) {
     //if ($out->isArticle()) {
-        $bodyAttrs['about']='http://...' . $out->getPageTitle(); // domainname + path + articlename
-        $bodyAttrs['xmlns:wiki']='http://ns1'; // domainname + path
+        $bodyAttrs['about']='http://domain/path/' . $out->getPageTitle(); // domainname + path + articlename
+        $bodyAttrs['xmlns:wiki']='http://domain/path/'; // domainname + path
     //}
     return true;
 }
@@ -53,8 +53,11 @@ function internalRDFaLinks($skin, $target, &$text, &$customAttribs, &$query, &$o
         if ($target->mTextform == $text)
             $text = $newtitle->mTextform;
             
-        $customAttribs['rel'] = 'wiki:'$parts[0];
-        //TODO add make $parts[0] camel case and remove whitespace
+        //remove whitespace, non-alpanumeric, to lowercase, to camel case, remove spaces
+        $relAttr = preg_replace('/\s\s+/', ' ', $parts[0]);
+        //remove non-alpanumeric... but allow unicode letters
+        $relAttr = str_replace(' ', '',ucwords(strtolower($relAttr)));
+        $customAttribs['rel'] = 'wiki:'.$relAttr;
         
         //It could be avoided if $target was by reference (&), then we could change $target and retun true;
         $ret = $skin->Link($newtitle,  $text, $customAttribs, $query, $options);
@@ -64,5 +67,3 @@ function internalRDFaLinks($skin, $target, &$text, &$customAttribs, &$query, &$o
         return true;
     }
 }
-
-

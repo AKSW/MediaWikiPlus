@@ -1,1 +1,6 @@
 Lightweight standalone mediawiki extension to provide RDFa output
+
+NOTE
+This mediawiki extension has been moved to:
+http://www.mediawiki.org/wiki/Extension:LightweightRDFa
+https://gerrit.wikimedia.org/r/gitweb?p=mediawiki/extensions/LightweightRDFa.git
